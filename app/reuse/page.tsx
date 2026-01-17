@@ -84,16 +84,21 @@ export default function ReusePage() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [hasHapticFired, setHasHapticFired] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [skipTransition, setSkipTransition] = useState(false);
   const leaveDirection = useRef<"left" | "right" | null>(null);
   const startPoint = useRef({ x: 0, y: 0 });
 
   const currentIdea = ideas[currentIndex];
   const nextIdea = ideas[currentIndex + 1];
 
+  // During exit, use raw position for full throw-off; during drag, apply resistance
   const displayedX = useMemo(() => {
+    if (isLeaving) {
+      return drag.x;
+    }
     const abs = Math.abs(drag.x);
     return drag.x / (1 + abs / 320);
-  }, [drag.x]);
+  }, [drag.x, isLeaving]);
 
   const rotation = Math.max(
     -MAX_ROTATION,
@@ -120,12 +125,12 @@ export default function ReusePage() {
     leaveDirection.current = direction;
     setIsLeaving(true);
     setIsDragging(false);
-    // Increase distance to ensure card fully exits the viewport
-    const distance = window.innerWidth * 1.8;
-    setDrag((prev) => ({
+    // Large distance ensures card fully exits viewport with authority
+    const distance = window.innerWidth + 400;
+    setDrag({
       x: direction === "right" ? distance : -distance,
-      y: prev.y * 0.3,
-    }));
+      y: 0,
+    });
   };
 
   const resetDrag = () => {
@@ -145,8 +150,10 @@ export default function ReusePage() {
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
     if (!isDragging || isLeaving) return;
     const deltaX = event.clientX - startPoint.current.x;
-    const deltaY = event.clientY - startPoint.current.y;
-    setDrag({ x: deltaX, y: deltaY });
+    // Constrain vertical movement - only allow minimal drift
+    const deltaY = (event.clientY - startPoint.current.y) * 0.15;
+    const clampedY = Math.max(-20, Math.min(20, deltaY));
+    setDrag({ x: deltaX, y: clampedY });
     if (!hasHapticFired && Math.abs(deltaX) >= SWIPE_THRESHOLD) {
       if (navigator.vibrate) {
         navigator.vibrate(8);
@@ -172,8 +179,16 @@ export default function ReusePage() {
     leaveDirection.current = null;
     setIsLeaving(false);
     setHasHapticFired(false);
+    // Skip transition so next card appears instantly (no fly-in)
+    setSkipTransition(true);
     setDrag({ x: 0, y: 0 });
     setCurrentIndex((prev) => prev + 1);
+    // Re-enable transitions after next paint
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setSkipTransition(false);
+      });
+    });
   };
 
   const toggleStatus = (ideaId: string) => {
@@ -287,11 +302,15 @@ export default function ReusePage() {
                   className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-[28px] bg-white px-6 text-center shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
                   style={{
                     transform: `translate3d(${displayedX}px, ${drag.y}px, 0) rotate(${rotation}deg) scale(${scale})`,
-                    opacity,
+                    opacity: isLeaving ? 0.9 : opacity,
                     border: `2px solid ${borderColor}`,
-                    transition: isDragging
+                    transition: skipTransition
+                      ? "none"
+                      : isDragging
                       ? "border-color 80ms ease"
-                      : "transform 320ms ease, opacity 320ms ease, border-color 200ms ease",
+                      : isLeaving
+                      ? "transform 380ms cubic-bezier(0.32, 0, 0.67, 0), opacity 380ms ease, border-color 100ms ease"
+                      : "transform 280ms ease-out, opacity 280ms ease-out, border-color 200ms ease",
                     touchAction: "pan-y",
                   }}
                 >

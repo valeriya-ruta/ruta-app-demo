@@ -66,3 +66,46 @@ html {
 .safe-area-top {
   padding-top: env(safe-area-inset-top);
 }
+
+/* Snap scroll utilities */
+.snap-scroll-container {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.snap-scroll-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Prevent pull-to-refresh and overscroll */
+.no-overscroll {
+  overscroll-behavior: none;
+  -webkit-overscroll-behavior: none;
+}
+
+/* Touch interaction optimizations */
+.touch-optimize {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Content card styles */
+.content-peek-overlay {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 20%,
+    black 80%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 20%,
+    black 80%,
+    transparent 100%
+  );
+}
