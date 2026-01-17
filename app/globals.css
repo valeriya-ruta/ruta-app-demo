@@ -33,7 +33,6 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-    padding-top: 50px;
   }
 }
 
@@ -70,8 +69,9 @@ html {
 /* Snap scroll utilities */
 .snap-scroll-container {
   scroll-snap-type: y mandatory;
-  overflow-y: auto;
+  overflow-y: scroll;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .snap-scroll-item {
@@ -83,6 +83,16 @@ html {
 .no-overscroll {
   overscroll-behavior: none;
   -webkit-overscroll-behavior: none;
+}
+
+/* Mobile snap scroll optimization */
+@supports (-webkit-touch-callout: none) {
+  .snap-scroll-container {
+    /* iOS specific: ensure smooth momentum scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent rubber-banding at edges interfering with snap */
+    overscroll-behavior-y: contain;
+  }
 }
 
 /* Touch interaction optimizations */
