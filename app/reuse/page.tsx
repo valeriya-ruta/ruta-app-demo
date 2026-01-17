@@ -106,14 +106,25 @@ export default function ReusePage() {
     ideas.length
   }`;
 
+  // Compute border color based on swipe direction
+  const borderProgress = Math.min(Math.abs(displayedX) / SWIPE_THRESHOLD, 1);
+  const swipeDirection = displayedX > 0 ? "right" : displayedX < 0 ? "left" : null;
+  const borderColor =
+    swipeDirection === "right"
+      ? `rgba(34, 197, 94, ${borderProgress * 0.9})`
+      : swipeDirection === "left"
+      ? `rgba(239, 68, 68, ${borderProgress * 0.9})`
+      : "rgba(241, 245, 249, 1)";
+
   const commitSwipe = (direction: "left" | "right") => {
     leaveDirection.current = direction;
     setIsLeaving(true);
     setIsDragging(false);
-    const distance = window.innerWidth * 1.2;
+    // Increase distance to ensure card fully exits the viewport
+    const distance = window.innerWidth * 1.8;
     setDrag((prev) => ({
       x: direction === "right" ? distance : -distance,
-      y: prev.y * 0.4,
+      y: prev.y * 0.3,
     }));
   };
 
@@ -197,7 +208,7 @@ export default function ReusePage() {
                     key={idea.id}
                     type="button"
                     onClick={() => toggleStatus(idea.id)}
-                    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                    className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-all duration-150 ease-out active:scale-[0.98] active:brightness-[0.98] ${
                       isAccepted
                         ? "border-emerald-200 bg-emerald-50/70"
                         : "border-rose-200 bg-rose-50/60"
@@ -253,12 +264,17 @@ export default function ReusePage() {
               >
                 {nextIdea && (
                   <div
-                    className="absolute inset-0 rounded-[28px] bg-white shadow-[0_14px_35px_rgba(15,23,42,0.08)] border border-slate-100"
+                    className="absolute inset-0 flex flex-col items-center justify-center rounded-[28px] bg-white px-6 text-center shadow-[0_14px_35px_rgba(15,23,42,0.08)] border border-slate-100"
                     style={{
                       transform: "translateY(12px) scale(0.988)",
                     }}
                   >
-                    <div className="absolute inset-0 rounded-[28px] shadow-[0_6px_16px_rgba(15,23,42,0.04)]" />
+                    <h2 className="text-2xl font-semibold text-foreground">
+                      {nextIdea.title}
+                    </h2>
+                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                      {nextIdea.description}
+                    </p>
                   </div>
                 )}
 
@@ -268,13 +284,14 @@ export default function ReusePage() {
                   onPointerUp={handlePointerUp}
                   onPointerCancel={handlePointerUp}
                   onTransitionEnd={handleTransitionEnd}
-                  className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-[28px] bg-white px-6 text-center shadow-[0_18px_45px_rgba(15,23,42,0.12)] border border-slate-100"
+                  className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-[28px] bg-white px-6 text-center shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
                   style={{
                     transform: `translate3d(${displayedX}px, ${drag.y}px, 0) rotate(${rotation}deg) scale(${scale})`,
                     opacity,
+                    border: `2px solid ${borderColor}`,
                     transition: isDragging
-                      ? "none"
-                      : "transform 280ms ease, opacity 280ms ease",
+                      ? "border-color 80ms ease"
+                      : "transform 320ms ease, opacity 320ms ease, border-color 200ms ease",
                     touchAction: "pan-y",
                   }}
                 >
