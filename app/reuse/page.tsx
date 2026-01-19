@@ -8,9 +8,9 @@ import { useRouter } from "next/navigation";
 
 type IdeaStatus = "accepted" | "rejected";
 
-const SWIPE_THRESHOLD_RIGHT = 140; // Like - normal threshold
-const SWIPE_THRESHOLD_LEFT = 90;   // Dislike - easier due to ergonomics
-const MAX_ROTATION = 4;
+const SWIPE_THRESHOLD_RIGHT = 60;  // Like threshold (displayed position)
+const SWIPE_THRESHOLD_LEFT = 45;   // Dislike - easier due to ergonomics
+const MAX_ROTATION = 6;
 const CARD_HEIGHT = 400;
 
 const ideas = [
@@ -92,13 +92,18 @@ export default function ReusePage() {
   const currentIdea = ideas[currentIndex];
   const nextIdea = ideas[currentIndex + 1];
 
+  // Calculate displayed position with lighter resistance for easier swiping
+  const getDisplayedX = (rawX: number) => {
+    const abs = Math.abs(rawX);
+    return rawX / (1 + abs / 500); // Lighter resistance (was 320)
+  };
+  
   // During exit, use raw position for full throw-off; during drag, apply resistance
   const displayedX = useMemo(() => {
     if (isLeaving) {
       return drag.x;
     }
-    const abs = Math.abs(drag.x);
-    return drag.x / (1 + abs / 320);
+    return getDisplayedX(drag.x);
   }, [drag.x, isLeaving]);
 
   const rotation = Math.max(
@@ -156,9 +161,10 @@ export default function ReusePage() {
     const deltaY = (event.clientY - startPoint.current.y) * 0.15;
     const clampedY = Math.max(-20, Math.min(20, deltaY));
     setDrag({ x: deltaX, y: clampedY });
-    // Use direction-specific threshold for haptic feedback
+    // Use displayed position for threshold check (matches visual feedback)
+    const displayed = getDisplayedX(deltaX);
     const threshold = deltaX < 0 ? SWIPE_THRESHOLD_LEFT : SWIPE_THRESHOLD_RIGHT;
-    if (!hasHapticFired && Math.abs(deltaX) >= threshold) {
+    if (!hasHapticFired && Math.abs(displayed) >= threshold) {
       if (navigator.vibrate) {
         navigator.vibrate(8);
       }
@@ -168,9 +174,10 @@ export default function ReusePage() {
 
   const handlePointerUp = () => {
     if (!isDragging || isLeaving) return;
-    // Use direction-specific threshold - left swipe is easier
+    // Use displayed position for threshold (matches visual - when border is full, card flies away)
+    const displayed = getDisplayedX(drag.x);
     const threshold = drag.x < 0 ? SWIPE_THRESHOLD_LEFT : SWIPE_THRESHOLD_RIGHT;
-    if (Math.abs(drag.x) >= threshold) {
+    if (Math.abs(displayed) >= threshold) {
       commitSwipe(drag.x > 0 ? "right" : "left");
       return;
     }
