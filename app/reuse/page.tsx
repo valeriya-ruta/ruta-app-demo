@@ -8,7 +8,8 @@ import { useRouter } from "next/navigation";
 
 type IdeaStatus = "accepted" | "rejected";
 
-const SWIPE_THRESHOLD = 140;
+const SWIPE_THRESHOLD_RIGHT = 140; // Like - normal threshold
+const SWIPE_THRESHOLD_LEFT = 90;   // Dislike - easier due to ergonomics
 const MAX_ROTATION = 4;
 const CARD_HEIGHT = 400;
 
@@ -111,9 +112,10 @@ export default function ReusePage() {
     ideas.length
   }`;
 
-  // Compute border color based on swipe direction
-  const borderProgress = Math.min(Math.abs(displayedX) / SWIPE_THRESHOLD, 1);
+  // Compute border color based on swipe direction (use direction-specific thresholds)
   const swipeDirection = displayedX > 0 ? "right" : displayedX < 0 ? "left" : null;
+  const currentThreshold = swipeDirection === "left" ? SWIPE_THRESHOLD_LEFT : SWIPE_THRESHOLD_RIGHT;
+  const borderProgress = Math.min(Math.abs(displayedX) / currentThreshold, 1);
   const borderColor =
     swipeDirection === "right"
       ? `rgba(34, 197, 94, ${borderProgress * 0.9})`
@@ -154,7 +156,9 @@ export default function ReusePage() {
     const deltaY = (event.clientY - startPoint.current.y) * 0.15;
     const clampedY = Math.max(-20, Math.min(20, deltaY));
     setDrag({ x: deltaX, y: clampedY });
-    if (!hasHapticFired && Math.abs(deltaX) >= SWIPE_THRESHOLD) {
+    // Use direction-specific threshold for haptic feedback
+    const threshold = deltaX < 0 ? SWIPE_THRESHOLD_LEFT : SWIPE_THRESHOLD_RIGHT;
+    if (!hasHapticFired && Math.abs(deltaX) >= threshold) {
       if (navigator.vibrate) {
         navigator.vibrate(8);
       }
@@ -164,7 +168,9 @@ export default function ReusePage() {
 
   const handlePointerUp = () => {
     if (!isDragging || isLeaving) return;
-    if (Math.abs(drag.x) >= SWIPE_THRESHOLD) {
+    // Use direction-specific threshold - left swipe is easier
+    const threshold = drag.x < 0 ? SWIPE_THRESHOLD_LEFT : SWIPE_THRESHOLD_RIGHT;
+    if (Math.abs(drag.x) >= threshold) {
       commitSwipe(drag.x > 0 ? "right" : "left");
       return;
     }
@@ -201,7 +207,7 @@ export default function ReusePage() {
   return (
     <AppShell pageTransition="slide-up">
       <div className="flex flex-col min-h-screen w-full max-w-md mx-auto bg-background">
-        <div className="flex items-center justify-center pt-6 pb-4 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
           {progressText}
         </div>
 
@@ -272,9 +278,9 @@ export default function ReusePage() {
           </div>
         ) : (
           <>
-            <div className="flex-1 px-5 pb-6">
+            <div className="flex-1 flex items-center justify-center px-5">
               <div
-                className="relative flex items-center justify-center"
+                className="relative flex items-center justify-center w-full"
                 style={{ height: CARD_HEIGHT }}
               >
                 {nextIdea && (
@@ -324,8 +330,8 @@ export default function ReusePage() {
               </div>
             </div>
 
-            <div className="px-6 pb-8 text-xs text-muted-foreground">
-              <div className="flex items-center justify-between opacity-60">
+            <div className="px-6 pb-5 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between opacity-50">
                 <div className="flex items-center gap-2">
                   <ThumbsDown className="h-3.5 w-3.5" />
                   <span>Swipe left if you don’t like the idea</span>
