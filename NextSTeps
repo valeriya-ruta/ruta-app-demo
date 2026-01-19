@@ -1,0 +1,13 @@
+1. Make the demo animation work properly: at first theres only 1 item,
+after swiping the 10 ideas whatever GREEN ideas (faked?) appear as swiping 
+2. Add fake "transcription" and then fake "scripting" (meaning first come
+up with the text)
+3. Reread copy and translate everything properly
+4. Generate at empty state after swiping (2-3 swipes then empty state
+"Поки що це всі твої ідеї, але ти завжди можеш додати більше + generate more button)
+
+
+1 done
+2 next
+3 next
+4 done

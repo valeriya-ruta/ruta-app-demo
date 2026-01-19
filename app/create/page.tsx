@@ -1,22 +1,23 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { motion, useAnimation, PanInfo } from "framer-motion";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { motion, useAnimation, PanInfo, AnimatePresence } from "framer-motion";
 import AppShell from "@/components/AppShell";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import RecordingButton from "@/components/RecordingButton";
-import { X, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { X, Trash2, Info } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-// Sample content data - 5 items
-const CONTENT_ITEMS = [
-  { id: 1, title: "Content 1", description: "" },
-  { id: 2, title: "Content 2", description: "" },
-  { id: 3, title: "Content 3", description: "" },
-  { id: 4, title: "Content 4", description: "" },
-  { id: 5, title: "Content 5", description: "" },
+// All content data - 6 items total
+const ALL_CONTENT_ITEMS = [
+  { id: 1, title: "One-minute growth story", description: "Share a quick, honest moment from your creator journey." },
+  { id: 2, title: "Before vs after workflow", description: "Show how your process changed over time." },
+  { id: 3, title: "Behind-the-scenes setup", description: "Give a calm walkthrough of your recording space." },
+  { id: 4, title: "Answer a common question", description: "Pick a FAQ and answer it in under 60 seconds." },
+  { id: 5, title: "Creative constraint challenge", description: "Create content using a single constraint." },
+  { id: 6, title: "Mini trend breakdown", description: "Break down a trend in your niche." },
 ];
 
 // Header height in pixels
@@ -24,19 +25,63 @@ const HEADER_HEIGHT = 56;
 // Peek amount percentage
 const PEEK_PERCENT = 10;
 // Threshold to trigger snap (percentage of item height user must drag)
-const SNAP_THRESHOLD_PERCENT = 35; // Must drag 35% of item height to snap
-// Resistance factor (lower = more resistance, 0.3-0.5 is good)
+const SNAP_THRESHOLD_PERCENT = 35;
+// Resistance factor
 const DRAG_RESISTANCE = 0.4;
 
 export default function CreatePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const controls = useAnimation();
   const currentIndexRef = useRef(0);
+  
+  // Demo state: track if we should show all items or just one
+  const [showAllItems, setShowAllItems] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
+  const hasAnimated = useRef(false);
 
-  const itemCount = CONTENT_ITEMS.length;
+  // Check if we just came from the swipe deck
+  useEffect(() => {
+    const fromSwipe = searchParams.get("fromSwipe") === "true";
+    
+    if (fromSwipe && !hasAnimated.current) {
+      // Delay the reveal animation for dramatic effect
+      hasAnimated.current = true;
+      setIsAnimating(true);
+      
+      // Clear the URL param
+      window.history.replaceState({}, "", "/create");
+      
+      // Show the items with animation after a brief pause
+      setTimeout(() => {
+        setShowAllItems(true);
+        // End animation state after items have appeared
+        setTimeout(() => {
+          setIsAnimating(false);
+          // Show the info popup
+          setShowPopup(true);
+          // Auto-hide popup after 4 seconds
+          setTimeout(() => {
+            setShowPopup(false);
+          }, 4000);
+        }, 600);
+      }, 400);
+    }
+    // On regular page load (no fromSwipe param), always start with 1 item
+    // This allows easy demo restart by refreshing the page
+  }, [searchParams]);
+
+  // Get the items to display (add empty state as last item when showing all)
+  const displayedItems = showAllItems 
+    ? [...ALL_CONTENT_ITEMS, { id: 0, title: "", description: "", isEmptyState: true }] 
+    : [ALL_CONTENT_ITEMS[0]];
+  const itemCount = displayedItems.length;
+  // For the counter, don't count the empty state
+  const contentItemCount = showAllItems ? ALL_CONTENT_ITEMS.length : 1;
 
   // Get container height
   const getContainerHeight = useCallback(() => {
@@ -84,11 +129,13 @@ export default function CreatePage() {
 
   // Handle drag start
   const handleDragStart = () => {
+    if (itemCount <= 1) return; // No dragging if only 1 item
     setIsDragging(true);
   };
 
   // Handle drag end - determine if we should snap to next/prev or stay
   const handleDragEnd = (_: any, info: PanInfo) => {
+    if (itemCount <= 1) return; // No snapping if only 1 item
     setIsDragging(false);
     
     const { offset, velocity } = info;
@@ -98,19 +145,14 @@ export default function CreatePage() {
     const currentIdx = currentIndexRef.current;
     let targetIndex = currentIdx;
 
-    // Calculate effective drag with resistance already applied by dragElastic
     const effectiveDrag = offset.y;
-    
-    // Check if drag exceeds threshold OR has high velocity
     const exceededThreshold = Math.abs(effectiveDrag) > threshold;
     const highVelocity = Math.abs(velocity.y) > 500;
 
     if (exceededThreshold || highVelocity) {
       if (effectiveDrag < 0 || velocity.y < -500) {
-        // Dragged up - go to next
         targetIndex = currentIdx + 1;
       } else if (effectiveDrag > 0 || velocity.y > 500) {
-        // Dragged down - go to previous
         targetIndex = currentIdx - 1;
       }
     }
@@ -120,13 +162,18 @@ export default function CreatePage() {
 
   // Calculate drag constraints
   const getDragConstraints = useCallback(() => {
+    if (itemCount <= 1) {
+      // No dragging allowed with single item
+      return { top: 0, bottom: 0 };
+    }
     const itemHeight = getItemHeight();
-    const maxDrag = itemHeight * 0.5; // Allow dragging up to 50% for visual feedback
+    const maxDrag = itemHeight * 0.5;
     return {
       top: getYOffset(currentIndexRef.current) - maxDrag,
       bottom: getYOffset(currentIndexRef.current) + maxDrag,
     };
-  }, [getItemHeight, getYOffset]);
+  }, [getItemHeight, getYOffset, itemCount]);
+
 
   return (
     <AppShell>
@@ -140,6 +187,14 @@ export default function CreatePage() {
             <Trash2 className="w-5 h-5" />
           </button>
 
+          {/* Item counter - hide on empty state */}
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {currentIndex < contentItemCount 
+              ? `${currentIndex + 1}/${contentItemCount}`
+              : `${contentItemCount}/${contentItemCount}`
+            }
+          </span>
+
           <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
@@ -152,8 +207,8 @@ export default function CreatePage() {
         >
           <motion.div
             className="absolute inset-x-0 top-0 touch-pan-x"
-            style={{ touchAction: "pan-x" }}
-            drag="y"
+            style={{ touchAction: itemCount > 1 ? "pan-x" : "none" }}
+            drag={itemCount > 1 ? "y" : false}
             dragConstraints={getDragConstraints()}
             dragElastic={DRAG_RESISTANCE}
             dragMomentum={false}
@@ -162,70 +217,84 @@ export default function CreatePage() {
             animate={controls}
             initial={{ y: 0 }}
           >
-            {CONTENT_ITEMS.map((item, index) => {
-              const isNext = index === currentIndex + 1;
-              const isCurrent = index === currentIndex;
-              const isPrev = index === currentIndex - 1;
+            <AnimatePresence mode="popLayout">
+              {displayedItems.map((item, index) => {
+                const isNext = index === currentIndex + 1;
+                const isCurrent = index === currentIndex;
+                const isPrev = index === currentIndex - 1;
+                const isNewItem = index > 0 && showAllItems;
 
-              return (
-                <div
-                  key={item.id}
-                  className="relative w-full"
-                  style={{
-                    height: `calc((100vh - ${HEADER_HEIGHT}px) * ${(100 - PEEK_PERCENT) / 100})`,
-                  }}
-                >
-                  {/* Content container */}
-                  <motion.div 
-                    className="absolute inset-0 bg-background overflow-hidden"
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={isNewItem ? { opacity: 0, y: 40, scale: 0.95 } : false}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: isNewItem ? (index - 1) * 0.08 : 0,
+                      ease: [0.25, 0.46, 0.45, 0.94]
+                    }}
+                    className="relative w-full"
                     style={{
-                      borderTopLeftRadius: isNext ? 16 : 0,
-                      borderTopRightRadius: isNext ? 16 : 0,
+                      height: `calc((100vh - ${HEADER_HEIGHT}px) * ${(100 - PEEK_PERCENT) / 100})`,
                     }}
-                    initial={false}
-                    animate={{
-                      opacity: isCurrent ? 1 : (isNext || isPrev) ? 0.6 : 0.3,
-                    }}
-                    transition={{ duration: 0.15 }}
                   >
-                    {/* Content Form */}
-                    <ContentItemForm 
-                      item={item} 
-                      router={router}
-                      isCurrent={isCurrent}
-                    />
+                    {/* Content container */}
+                    <motion.div 
+                      className="absolute inset-0 bg-background overflow-hidden"
+                      style={{
+                        borderTopLeftRadius: isNext ? 16 : 0,
+                        borderTopRightRadius: isNext ? 16 : 0,
+                      }}
+                      initial={false}
+                      animate={{
+                        opacity: isCurrent ? 1 : (isNext || isPrev) ? 0.6 : 0.3,
+                      }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {/* Content Form or Empty State */}
+                      {'isEmptyState' in item && item.isEmptyState ? (
+                        <EmptyStateScreen router={router} isCurrent={isCurrent} />
+                      ) : (
+                        <ContentItemForm 
+                          item={item} 
+                          router={router}
+                          isCurrent={isCurrent}
+                        />
+                      )}
+                    </motion.div>
+
+                    {/* Top shadow for peek depth */}
+                    {isNext && (
+                      <div
+                        className="absolute inset-x-0 top-0 h-3 pointer-events-none z-20"
+                        style={{
+                          background: "linear-gradient(to bottom, rgba(0, 0, 0, 0.06), transparent)",
+                          borderTopLeftRadius: 16,
+                          borderTopRightRadius: 16,
+                        }}
+                      />
+                    )}
+
+                    {/* Peek fade overlay for next item */}
+                    {isNext && !isDragging && (
+                      <div
+                        className="absolute inset-0 pointer-events-none z-10"
+                        style={{
+                          borderTopLeftRadius: 16,
+                          borderTopRightRadius: 16,
+                          background: `linear-gradient(to bottom, 
+                            hsl(var(--background) / 0.4) 0%, 
+                            hsl(var(--background) / 0.15) 50%,
+                            transparent 100%
+                          )`,
+                        }}
+                      />
+                    )}
                   </motion.div>
-
-                  {/* Top shadow for peek depth */}
-                  {isNext && (
-                    <div
-                      className="absolute inset-x-0 top-0 h-3 pointer-events-none z-20"
-                      style={{
-                        background: "linear-gradient(to bottom, rgba(0, 0, 0, 0.06), transparent)",
-                        borderTopLeftRadius: 16,
-                        borderTopRightRadius: 16,
-                      }}
-                    />
-                  )}
-
-                  {/* Peek fade overlay for next item */}
-                  {isNext && !isDragging && (
-                    <div
-                      className="absolute inset-0 pointer-events-none z-10"
-                      style={{
-                        borderTopLeftRadius: 16,
-                        borderTopRightRadius: 16,
-                        background: `linear-gradient(to bottom, 
-                          hsl(var(--background) / 0.4) 0%, 
-                          hsl(var(--background) / 0.15) 50%,
-                          transparent 100%
-                        )`,
-                      }}
-                    />
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </AnimatePresence>
             
             {/* Extra space at bottom */}
             <div 
@@ -234,7 +303,33 @@ export default function CreatePage() {
               }} 
             />
           </motion.div>
+          
         </div>
+
+        {/* Info popup */}
+        <AnimatePresence>
+          {showPopup && (
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="absolute bottom-6 left-4 right-4 z-40"
+            >
+              <div 
+                className="flex items-start gap-3 px-4 py-3.5 rounded-2xl bg-secondary/95 backdrop-blur-sm border border-border/40 shadow-lg"
+                onClick={() => setShowPopup(false)}
+              >
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Info className="w-4 h-4 text-primary" />
+                </div>
+                <p className="text-sm text-foreground/90 leading-relaxed pt-1">
+                  Нові згенеровані ідеї будуть нижче — гортай вниз, щоб їх побачити!
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </AppShell>
   );
@@ -267,6 +362,7 @@ function ContentItemForm({ item, router, isCurrent }: ContentItemFormProps) {
           <div className="relative">
             <Textarea
               placeholder="Розкажи, про що ти хочеш поговорити в цьому контенті. Опиши основні ідеї та ключові моменти..."
+              defaultValue={item.description}
               className="min-h-[160px] pr-12 pb-14 text-base border-border/60"
               tabIndex={isCurrent ? 0 : -1}
               readOnly={!isCurrent}
@@ -292,18 +388,45 @@ function ContentItemForm({ item, router, isCurrent }: ContentItemFormProps) {
             >
               ✨ Перевикористати контент
             </Button>
+            
+            {/* Primary Action Button */}
+            <Button 
+              className="w-full rounded-[999px] mt-3" 
+              size="lg"
+              tabIndex={isCurrent ? 0 : -1}
+            >
+              Перевірити та зняти
+            </Button>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Primary Action Button */}
-      <div className="px-4 pt-4 pb-4 border-t border-border bg-background">
+// Empty state screen component
+interface EmptyStateScreenProps {
+  router: ReturnType<typeof useRouter>;
+  isCurrent: boolean;
+}
+
+function EmptyStateScreen({ router, isCurrent }: EmptyStateScreenProps) {
+  return (
+    <div className={`h-full flex flex-col items-center justify-center px-6 ${!isCurrent ? 'pointer-events-none' : ''}`}>
+      <div className="text-center max-w-sm">
+        <h2 className="text-2xl font-semibold text-foreground mb-3">
+          Закінчились ідеї?
+        </h2>
+        <p className="text-muted-foreground mb-8">
+          Ти завжди можеш згенерувати нові! Натискай на кнопку нижче
+        </p>
         <Button 
-          className="w-full rounded-[999px]" 
+          className="rounded-[999px] px-8" 
           size="lg"
+          onClick={() => router.push("/reuse")}
           tabIndex={isCurrent ? 0 : -1}
         >
-          Перевірити та зняти
+          Згенерувати більше ідей
         </Button>
       </div>
     </div>

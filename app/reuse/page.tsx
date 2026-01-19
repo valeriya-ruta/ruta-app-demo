@@ -258,10 +258,10 @@ export default function ReusePage() {
                 className="w-full rounded-[999px]"
                 onClick={() => {
                   setIsConfirmed(true);
-                  router.push("/create");
+                  router.push("/create?fromSwipe=true");
                 }}
               >
-                Confirm
+                Continue
               </Button>
               {isConfirmed && (
                 <p className="text-xs text-muted-foreground text-center mt-2">
