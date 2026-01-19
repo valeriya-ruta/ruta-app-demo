@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { motion, useAnimation, PanInfo, AnimatePresence } from "framer-motion";
 import AppShell from "@/components/AppShell";
 import { Input } from "@/components/ui/input";
@@ -29,7 +29,7 @@ const SNAP_THRESHOLD_PERCENT = 35;
 // Resistance factor
 const DRAG_RESISTANCE = 0.4;
 
-export default function CreatePage() {
+function CreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -430,5 +430,18 @@ function EmptyStateScreen({ router, isCurrent }: EmptyStateScreenProps) {
         </Button>
       </div>
     </div>
+  );
+}
+
+// Default export with Suspense wrapper for useSearchParams
+export default function CreatePage() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+      </div>
+    }>
+      <CreatePageContent />
+    </Suspense>
   );
 }
