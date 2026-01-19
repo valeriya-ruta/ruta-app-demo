@@ -101,11 +101,11 @@ export default function ReusePage() {
   
   // During exit, use flyAwayX for smooth animation; during drag, apply resistance
   const displayedX = useMemo(() => {
-    if (isLeaving && flyAwayX !== null) {
+    if (flyAwayX !== null) {
       return flyAwayX;
     }
     return getDisplayedX(drag.x);
-  }, [drag.x, isLeaving, flyAwayX]);
+  }, [drag.x, flyAwayX]);
 
   const rotation = Math.max(
     -MAX_ROTATION,
@@ -131,17 +131,20 @@ export default function ReusePage() {
 
   const commitSwipe = (direction: "left" | "right") => {
     leaveDirection.current = direction;
+    const currentDisplayed = getDisplayedX(drag.x);
+    
+    // Phase 1: Set current position and enable fly-away transition
+    setFlyAwayX(currentDisplayed);
     setIsDragging(false);
     setIsLeaving(true);
     
-    // Start fly-away from current visual position (no jump)
-    const currentDisplayed = getDisplayedX(drag.x);
-    setFlyAwayX(currentDisplayed);
-    
-    // Animate to off-screen position on next frame
+    // Phase 2: After browser paints with transition enabled, animate to off-screen
+    // Double rAF ensures the transition CSS is applied before position changes
     requestAnimationFrame(() => {
-      const distance = window.innerWidth + 400;
-      setFlyAwayX(direction === "right" ? distance : -distance);
+      requestAnimationFrame(() => {
+        const distance = window.innerWidth + 400;
+        setFlyAwayX(direction === "right" ? distance : -distance);
+      });
     });
   };
 
@@ -189,7 +192,9 @@ export default function ReusePage() {
     resetDrag();
   };
 
-  const handleTransitionEnd = () => {
+  const handleTransitionEnd = (e: React.TransitionEvent) => {
+    // Only handle transform transition end (not border-color which is faster)
+    if (e.propertyName !== "transform") return;
     if (!isLeaving || !leaveDirection.current || !currentIdea) return;
     const status: IdeaStatus =
       leaveDirection.current === "right" ? "accepted" : "rejected";
