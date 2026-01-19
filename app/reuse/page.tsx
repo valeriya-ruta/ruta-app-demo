@@ -86,6 +86,7 @@ export default function ReusePage() {
   const [hasHapticFired, setHasHapticFired] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [skipTransition, setSkipTransition] = useState(false);
+  const [flyAwayX, setFlyAwayX] = useState<number | null>(null);
   const leaveDirection = useRef<"left" | "right" | null>(null);
   const startPoint = useRef({ x: 0, y: 0 });
 
@@ -98,13 +99,13 @@ export default function ReusePage() {
     return rawX / (1 + abs / 500); // Lighter resistance (was 320)
   };
   
-  // During exit, use raw position for full throw-off; during drag, apply resistance
+  // During exit, use flyAwayX for smooth animation; during drag, apply resistance
   const displayedX = useMemo(() => {
-    if (isLeaving) {
-      return drag.x;
+    if (isLeaving && flyAwayX !== null) {
+      return flyAwayX;
     }
     return getDisplayedX(drag.x);
-  }, [drag.x, isLeaving]);
+  }, [drag.x, isLeaving, flyAwayX]);
 
   const rotation = Math.max(
     -MAX_ROTATION,
@@ -130,13 +131,17 @@ export default function ReusePage() {
 
   const commitSwipe = (direction: "left" | "right") => {
     leaveDirection.current = direction;
-    setIsLeaving(true);
     setIsDragging(false);
-    // Large distance ensures card fully exits viewport with authority
-    const distance = window.innerWidth + 400;
-    setDrag({
-      x: direction === "right" ? distance : -distance,
-      y: 0,
+    setIsLeaving(true);
+    
+    // Start fly-away from current visual position (no jump)
+    const currentDisplayed = getDisplayedX(drag.x);
+    setFlyAwayX(currentDisplayed);
+    
+    // Animate to off-screen position on next frame
+    requestAnimationFrame(() => {
+      const distance = window.innerWidth + 400;
+      setFlyAwayX(direction === "right" ? distance : -distance);
     });
   };
 
@@ -192,6 +197,7 @@ export default function ReusePage() {
     leaveDirection.current = null;
     setIsLeaving(false);
     setHasHapticFired(false);
+    setFlyAwayX(null);
     // Skip transition so next card appears instantly (no fly-in)
     setSkipTransition(true);
     setDrag({ x: 0, y: 0 });
