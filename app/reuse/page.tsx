@@ -87,6 +87,7 @@ export default function ReusePage() {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [skipTransition, setSkipTransition] = useState(false);
   const [flyAwayX, setFlyAwayX] = useState<number | null>(null);
+  const [hasJustAdvanced, setHasJustAdvanced] = useState(false);
   const leaveDirection = useRef<"left" | "right" | null>(null);
   const startPoint = useRef({ x: 0, y: 0 });
 
@@ -106,6 +107,9 @@ export default function ReusePage() {
     }
     return getDisplayedX(drag.x);
   }, [drag.x, flyAwayX]);
+
+  // Add a tiny upward motion when a new card appears
+  const effectiveY = isLeaving ? drag.y : drag.y + (hasJustAdvanced ? 6 : 0);
 
   const rotation = Math.max(
     -MAX_ROTATION,
@@ -203,14 +207,16 @@ export default function ReusePage() {
     setIsLeaving(false);
     setHasHapticFired(false);
     setFlyAwayX(null);
-    // Skip transition so next card appears instantly (no fly-in)
+    // Prepare next card with a subtle upward motion
     setSkipTransition(true);
     setDrag({ x: 0, y: 0 });
     setCurrentIndex((prev) => prev + 1);
-    // Re-enable transitions after next paint
+    setHasJustAdvanced(true);
+    // After next paint, re-enable transitions and let the card ease from y=6 to y=0
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         setSkipTransition(false);
+        setHasJustAdvanced(false);
       });
     });
   };
@@ -325,7 +331,7 @@ export default function ReusePage() {
                   onTransitionEnd={handleTransitionEnd}
                   className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-[28px] bg-white px-6 text-center shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
                   style={{
-                    transform: `translate3d(${displayedX}px, ${drag.y}px, 0) rotate(${rotation}deg) scale(${scale})`,
+                    transform: `translate3d(${displayedX}px, ${effectiveY}, 0) rotate(${rotation}deg) scale(${scale})`,
                     opacity: isLeaving ? 0.9 : opacity,
                     border: `2px solid ${borderColor}`,
                     transition: skipTransition
@@ -334,7 +340,7 @@ export default function ReusePage() {
                       ? "border-color 80ms ease"
                       : isLeaving
                       ? "transform 380ms cubic-bezier(0.32, 0, 0.67, 0), opacity 380ms ease, border-color 100ms ease"
-                      : "transform 280ms ease-out, opacity 280ms ease-out, border-color 200ms ease",
+                      : "transform 260ms ease-out, opacity 260ms ease-out, border-color 200ms ease",
                     touchAction: "pan-y",
                   }}
                 >
