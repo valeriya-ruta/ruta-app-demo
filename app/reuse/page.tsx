@@ -331,7 +331,7 @@ export default function ReusePage() {
                   onTransitionEnd={handleTransitionEnd}
                   className="relative z-10 flex h-full w-full flex-col items-center justify-center rounded-[28px] bg-white px-6 text-center shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
                   style={{
-                    transform: `translate3d(${displayedX}px, ${effectiveY}, 0) rotate(${rotation}deg) scale(${scale})`,
+                    transform: `translate3d(${displayedX}px, ${effectiveY}px, 0) rotate(${rotation}deg) scale(${scale})`,
                     opacity: isLeaving ? 0.9 : opacity,
                     border: `2px solid ${borderColor}`,
                     transition: skipTransition
