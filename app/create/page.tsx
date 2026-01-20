@@ -10,8 +10,15 @@ import RecordingButton from "@/components/RecordingButton";
 import { X, Trash2, Info } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// All content data - 5 items (matching swipe selections 1, 3, 4, 5, 7)
-const ALL_CONTENT_ITEMS = [
+// Base item (first one with transcription/script demo)
+const BASE_ITEM = { 
+  id: 0, 
+  title: "Регулярність контенту ≠ дисципліна (для креативних людей)", 
+  description: "• Чому більшості людей насправді складно постити регулярно?\n• Що для мене важливіше в контенті — дисципліна чи стан і ресурс?\n• Як би виглядав регулярний контент, якби він будувався навколо потоку?" 
+};
+
+// Additional items from swipe selection (1, 3, 4, 5, 7)
+const SWIPED_ITEMS = [
   { id: 1, title: "POV: я думаю, що лінь заважає мені постити", description: "• Що я зазвичай звинувачую, коли не виходить регулярно?\n• Це справді лінь — чи перевантаження?\n• Коли контент починає відчуватись як ще одна задача?" },
   { id: 3, title: "Регулярність — це проблема енергії, а не часу", description: "• Чи справді мені бракує часу?\n• В яких станах я можу створювати контент легше?\n• Що забирає енергію перед зйомкою або письмом?" },
   { id: 4, title: "Чому контент зривається через постійні переключення", description: "• Скільки разів на день я перемикаюсь між задачами?\n• Що відбувається з думкою після цих переключень?\n• Чи можу я повертатись у контент без втрати фокусу?" },
@@ -77,11 +84,11 @@ function CreatePageContent() {
 
   // Get the items to display (add empty state as last item when showing all)
   const displayedItems = showAllItems 
-    ? [...ALL_CONTENT_ITEMS, { id: 0, title: "", description: "", isEmptyState: true }] 
-    : [ALL_CONTENT_ITEMS[0]];
+    ? [BASE_ITEM, ...SWIPED_ITEMS, { id: -1, title: "", description: "", isEmptyState: true }] 
+    : [BASE_ITEM];
   const itemCount = displayedItems.length;
-  // For the counter, don't count the empty state
-  const contentItemCount = showAllItems ? ALL_CONTENT_ITEMS.length : 1;
+  // For the counter, don't count the empty state (6 items when showing all: 1 base + 5 swiped)
+  const contentItemCount = showAllItems ? 1 + SWIPED_ITEMS.length : 1;
 
   // Get container height
   const getContainerHeight = useCallback(() => {
@@ -277,6 +284,7 @@ function CreatePageContent() {
                           isCurrent={isCurrent}
                           onDragHandlePointerDown={(e) => dragControls.start(e)}
                           showDragHandle={itemCount > 1 && index > 0}
+                          prefilledScript={showAllItems && index === 0}
                         />
                       )}
                     </motion.div>
@@ -377,9 +385,10 @@ interface ContentItemFormProps {
   isCurrent: boolean;
   onDragHandlePointerDown?: (e: React.PointerEvent) => void;
   showDragHandle?: boolean;
+  prefilledScript?: boolean; // Show the generated script immediately
 }
 
-function ContentItemForm({ item, router, isCurrent, onDragHandlePointerDown, showDragHandle }: ContentItemFormProps) {
+function ContentItemForm({ item, router, isCurrent, onDragHandlePointerDown, showDragHandle, prefilledScript }: ContentItemFormProps) {
   const [transcribedText, setTranscribedText] = useState("");
   const [isTranscribing, setIsTranscribing] = useState(false);
   const hasTranscribed = useRef(false);
@@ -390,6 +399,16 @@ function ContentItemForm({ item, router, isCurrent, onDragHandlePointerDown, sho
   const [visibleLines, setVisibleLines] = useState<string[]>([]);
   const [isTextFadingOut, setIsTextFadingOut] = useState(false);
   const hasGeneratedScript = useRef(false);
+
+  // When prefilledScript becomes true, set the generated script
+  useEffect(() => {
+    if (prefilledScript && !hasGeneratedScript.current) {
+      setTranscribedText(GENERATED_SCRIPT);
+      setScriptState('done');
+      hasTranscribed.current = true;
+      hasGeneratedScript.current = true;
+    }
+  }, [prefilledScript]);
 
   // Auto-expand textarea as content grows
   useEffect(() => {
