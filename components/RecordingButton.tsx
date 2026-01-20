@@ -5,11 +5,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Square } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function RecordingButton() {
+interface RecordingButtonProps {
+  onRecordingStart?: () => void;
+}
+
+export default function RecordingButton({ onRecordingStart }: RecordingButtonProps) {
   const [isRecording, setIsRecording] = useState(false);
 
   const toggleRecording = () => {
+    const wasRecording = isRecording;
     setIsRecording(!isRecording);
+    
+    // Only trigger callback when starting to record (not when stopping)
+    if (!wasRecording && onRecordingStart) {
+      onRecordingStart();
+    }
   };
 
   return (

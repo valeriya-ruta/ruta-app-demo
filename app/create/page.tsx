@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect, Suspense } from "react";
-import { motion, useAnimation, PanInfo, AnimatePresence } from "framer-motion";
+import { motion, useAnimation, PanInfo, AnimatePresence, useDragControls } from "framer-motion";
 import AppShell from "@/components/AppShell";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,14 +10,13 @@ import RecordingButton from "@/components/RecordingButton";
 import { X, Trash2, Info } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-// All content data - 6 items total
+// All content data - 5 items (matching swipe selections 1, 3, 4, 5, 7)
 const ALL_CONTENT_ITEMS = [
-  { id: 1, title: "One-minute growth story", description: "Share a quick, honest moment from your creator journey." },
-  { id: 2, title: "Before vs after workflow", description: "Show how your process changed over time." },
-  { id: 3, title: "Behind-the-scenes setup", description: "Give a calm walkthrough of your recording space." },
-  { id: 4, title: "Answer a common question", description: "Pick a FAQ and answer it in under 60 seconds." },
-  { id: 5, title: "Creative constraint challenge", description: "Create content using a single constraint." },
-  { id: 6, title: "Mini trend breakdown", description: "Break down a trend in your niche." },
+  { id: 1, title: "POV: я думаю, що лінь заважає мені постити", description: "• Що я зазвичай звинувачую, коли не виходить регулярно?\n• Це справді лінь — чи перевантаження?\n• Коли контент починає відчуватись як ще одна задача?" },
+  { id: 3, title: "Регулярність — це проблема енергії, а не часу", description: "• Чи справді мені бракує часу?\n• В яких станах я можу створювати контент легше?\n• Що забирає енергію перед зйомкою або письмом?" },
+  { id: 4, title: "Чому контент зривається через постійні переключення", description: "• Скільки разів на день я перемикаюсь між задачами?\n• Що відбувається з думкою після цих переключень?\n• Чи можу я повертатись у контент без втрати фокусу?" },
+  { id: 5, title: "Для новачків: чому складно постити регулярно", description: "• Чого я очікую від себе на старті?\n• Чи не намагаюсь я робити \"ідеально\" з першого разу?\n• Що було б, якби я спростила процес?" },
+  { id: 7, title: "Чому планери і Notion не вирішують проблему контенту", description: "• Що саме я там організовую — і чи створюю контент?\n• Чи не стало планування заміною дії?\n• Коли я востаннє поверталась до старих ідей?" },
 ];
 
 // Header height in pixels
@@ -37,6 +36,7 @@ function CreatePageContent() {
   const [isDragging, setIsDragging] = useState(false);
   const controls = useAnimation();
   const currentIndexRef = useRef(0);
+  const dragControls = useDragControls();
   
   // Demo state: track if we should show all items or just one
   const [showAllItems, setShowAllItems] = useState(false);
@@ -206,9 +206,9 @@ function CreatePageContent() {
           className="flex-1 relative overflow-hidden"
         >
           <motion.div
-            className="absolute inset-x-0 top-0 touch-pan-x"
-            style={{ touchAction: itemCount > 1 ? "pan-x" : "none" }}
+            className="absolute inset-x-0 top-0"
             drag={itemCount > 1 ? "y" : false}
+            dragControls={dragControls}
             dragConstraints={getDragConstraints()}
             dragElastic={DRAG_RESISTANCE}
             dragMomentum={false}
@@ -216,6 +216,7 @@ function CreatePageContent() {
             onDragEnd={handleDragEnd}
             animate={controls}
             initial={{ y: 0 }}
+            dragListener={false}
           >
             <AnimatePresence mode="popLayout">
               {displayedItems.map((item, index) => {
@@ -241,10 +242,11 @@ function CreatePageContent() {
                   >
                     {/* Content container */}
                     <motion.div 
-                      className="absolute inset-0 bg-background overflow-hidden"
+                      className="absolute inset-0 bg-background"
                       style={{
                         borderTopLeftRadius: isNext ? 16 : 0,
                         borderTopRightRadius: isNext ? 16 : 0,
+                        overflow: isCurrent ? 'visible' : 'hidden',
                       }}
                       initial={false}
                       animate={{
@@ -252,6 +254,19 @@ function CreatePageContent() {
                       }}
                       transition={{ duration: 0.15 }}
                     >
+                      {/* Drag handle at top of next item (peek area) */}
+                      {isNext && itemCount > 1 && (
+                        <div 
+                          className="absolute inset-x-0 top-0 h-full cursor-grab active:cursor-grabbing z-30"
+                          onPointerDown={(e) => dragControls.start(e)}
+                          style={{ touchAction: 'none' }}
+                        >
+                          {/* Visual drag indicator */}
+                          <div className="flex justify-center pt-3">
+                            <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+                          </div>
+                        </div>
+                      )}
                       {/* Content Form or Empty State */}
                       {'isEmptyState' in item && item.isEmptyState ? (
                         <EmptyStateScreen router={router} isCurrent={isCurrent} />
@@ -260,6 +275,8 @@ function CreatePageContent() {
                           item={item} 
                           router={router}
                           isCurrent={isCurrent}
+                          onDragHandlePointerDown={(e) => dragControls.start(e)}
+                          showDragHandle={itemCount > 1 && index > 0}
                         />
                       )}
                     </motion.div>
@@ -296,10 +313,13 @@ function CreatePageContent() {
               })}
             </AnimatePresence>
             
-            {/* Extra space at bottom */}
+            {/* Extra space at bottom - also a drag handle */}
             <div 
+              className="cursor-grab active:cursor-grabbing"
+              onPointerDown={(e) => itemCount > 1 && dragControls.start(e)}
               style={{ 
                 height: `calc((100vh - ${HEADER_HEIGHT}px) * ${PEEK_PERCENT / 100})`,
+                touchAction: 'none',
               }} 
             />
           </motion.div>
@@ -335,18 +355,154 @@ function CreatePageContent() {
   );
 }
 
+// Demo transcription text
+const DEMO_TRANSCRIPTION = "Мені на консультаціях часто кажуть, що я людина креативна, мені дуже важко вести контент регулярно, тому що в мене дуже багато ідей, але я не встигаю їх всі зробити. І тому що контент – це дуже багато роботи, і реально кожного дня не встигаєш. Але якщо війти в потік, то виходить набагато краще. І дисципліна на таких людей зазвичай не працює. Працює система, де можна записати свої ідеї, наприклад, в нотатки і потім до них повертатися періодично і це буде підтримувати енергію. А взагалі геніально це використовувати або штучний інтелект, або реального асистента, щоб він допомагав це перетворювати на реальний контент.";
+
+const GENERATED_SCRIPT = `Ти хочеш вести блог, але постиш 1–2 рази на тиждень і думаєш, що проблема в дисципліні?
+
+Насправді, справа не в дисципліні і навіть не в мотивації.
+
+Більшість креативних людей, як ти, просто не можуть постійно працювати "по плану".
+Тому що креативність працює інакше — вона з'являється в потоці, ресурсі, та енергії.
+
+І якщо ти можеш легко входити в цей потік, проблема з регулярністю зникає сама собою.
+
+Для цього тобі не потрібна жорстка система і список правил, бо вони навпаки тільки зупиняють твій креатив.
+Тобі потрібна система, яка підтримає цей потік енергії - і ти одразу побачиш, як легко тобі створювати контент!`;
+
 // Separate component for each content item's form
 interface ContentItemFormProps {
   item: { id: number; title: string; description: string };
   router: ReturnType<typeof useRouter>;
   isCurrent: boolean;
+  onDragHandlePointerDown?: (e: React.PointerEvent) => void;
+  showDragHandle?: boolean;
 }
 
-function ContentItemForm({ item, router, isCurrent }: ContentItemFormProps) {
+function ContentItemForm({ item, router, isCurrent, onDragHandlePointerDown, showDragHandle }: ContentItemFormProps) {
+  const [transcribedText, setTranscribedText] = useState("");
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const hasTranscribed = useRef(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Script generation state
+  const [scriptState, setScriptState] = useState<'idle' | 'loading' | 'transforming' | 'done'>('idle');
+  const [visibleLines, setVisibleLines] = useState<string[]>([]);
+  const [isTextFadingOut, setIsTextFadingOut] = useState(false);
+  const hasGeneratedScript = useRef(false);
+
+  // Auto-expand textarea as content grows
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      // Set to scrollHeight, with a minimum of 160px
+      const newHeight = Math.max(160, textarea.scrollHeight);
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, [transcribedText]);
+
+  // Handle script generation with magical animation
+  const handleGenerateScript = useCallback(() => {
+    if (hasGeneratedScript.current || scriptState !== 'idle') return;
+    hasGeneratedScript.current = true;
+    
+    setScriptState('loading');
+    
+    // After 3 seconds, start the transformation
+    setTimeout(() => {
+      setScriptState('transforming');
+      setIsTextFadingOut(true);
+      
+      // Split script into lines for animation
+      const lines = GENERATED_SCRIPT.split('\n');
+      
+      // Start revealing lines after old text fades (500ms)
+      setTimeout(() => {
+        setTranscribedText(''); // Clear old text
+        setIsTextFadingOut(false);
+        
+        // Reveal lines one by one
+        lines.forEach((line, index) => {
+          setTimeout(() => {
+            setVisibleLines(prev => [...prev, line]);
+            // Update textarea with visible lines for proper height calculation
+            setTranscribedText(lines.slice(0, index + 1).join('\n'));
+          }, index * 180); // 180ms between each line
+        });
+        
+        // Mark as done after all lines are revealed
+        setTimeout(() => {
+          setScriptState('done');
+        }, lines.length * 180 + 300);
+      }, 500);
+    }, 3000);
+  }, [scriptState]);
+
+  // Simulate live voice transcription with bunched words
+  const startTranscriptionDemo = useCallback(() => {
+    // Only run once per page load
+    if (hasTranscribed.current || isTranscribing) return;
+    hasTranscribed.current = true;
+    setIsTranscribing(true);
+
+    const words = DEMO_TRANSCRIPTION.split(" ");
+    let currentIndex = 0;
+    let currentText = "";
+
+    // Wait 1 second before starting
+    setTimeout(() => {
+      const addNextBunch = () => {
+        if (currentIndex >= words.length) {
+          setIsTranscribing(false);
+          return;
+        }
+
+        // Random bunch size: 1-5 words
+        const bunchSize = Math.floor(Math.random() * 5) + 1;
+        const endIndex = Math.min(currentIndex + bunchSize, words.length);
+        
+        // Add words one by one with tiny delays within the bunch
+        const addWordsInBunch = (idx: number) => {
+          if (idx >= endIndex) {
+            // After bunch is complete, wait longer before next bunch (300-600ms)
+            const pauseBetweenBunches = Math.floor(Math.random() * 300) + 300;
+            setTimeout(addNextBunch, pauseBetweenBunches);
+            return;
+          }
+
+          // Add the word
+          currentText += (currentText ? " " : "") + words[idx];
+          setTranscribedText(currentText);
+          
+          // Tiny delay between words in same bunch (20-80ms)
+          const wordDelay = Math.floor(Math.random() * 60) + 20;
+          setTimeout(() => addWordsInBunch(idx + 1), wordDelay);
+        };
+
+        addWordsInBunch(currentIndex);
+        currentIndex = endIndex;
+      };
+
+      addNextBunch();
+    }, 1000);
+  }, [isTranscribing]);
+
   return (
     <div className={`h-full flex flex-col ${!isCurrent ? 'pointer-events-none' : ''}`}>
-      {/* Content area */}
-      <div className="flex-1 pt-6 px-4 overflow-hidden">
+      {/* Drag handle at top for going to previous item */}
+      {showDragHandle && (
+        <div 
+          className="flex justify-center py-2 cursor-grab active:cursor-grabbing flex-shrink-0"
+          onPointerDown={onDragHandlePointerDown}
+          style={{ touchAction: 'none' }}
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+        </div>
+      )}
+      {/* Content area - scrollable */}
+      <div className={`flex-1 ${showDragHandle ? 'pt-2' : 'pt-6'} px-4 overflow-y-auto overscroll-contain pb-6`}>
         <div className="space-y-6">
           {/* Title Input */}
           <Input
@@ -360,21 +516,60 @@ function ContentItemForm({ item, router, isCurrent }: ContentItemFormProps) {
 
           {/* Script Area */}
           <div className="relative">
+            {/* Hidden textarea for height calculation */}
             <Textarea
-              placeholder="Розкажи, про що ти хочеш поговорити в цьому контенті. Опиши основні ідеї та ключові моменти..."
-              defaultValue={item.description}
-              className="min-h-[160px] pr-12 pb-14 text-base border-border/60"
+              ref={textareaRef}
+              placeholder={item.description || "Розкажи, про що ти хочеш поговорити в цьому контенті. Опиши основні ідеї та ключові моменти..."}
+              value={transcribedText}
+              onChange={(e) => setTranscribedText(e.target.value)}
+              className={`min-h-[160px] pr-12 pb-14 text-base border-border/60 resize-none overflow-hidden transition-opacity duration-500 ${
+                isTextFadingOut ? 'opacity-0' : scriptState === 'transforming' ? 'opacity-0' : 'opacity-100'
+              }`}
               tabIndex={isCurrent ? 0 : -1}
-              readOnly={!isCurrent}
+              readOnly={!isCurrent || scriptState !== 'idle'}
             />
-            <RecordingButton />
+            
+            {/* Magical text overlay during transformation */}
+            {scriptState === 'transforming' && visibleLines.length > 0 && (
+              <div className="absolute inset-0 px-4 py-3 pointer-events-none overflow-hidden">
+                <div className="text-base text-foreground leading-relaxed">
+                  {visibleLines.map((line, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 8, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ 
+                        duration: 0.4, 
+                        ease: [0.25, 0.46, 0.45, 0.94]
+                      }}
+                      className={line === '' ? 'h-6' : ''}
+                    >
+                      {line}
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <RecordingButton onRecordingStart={startTranscriptionDemo} />
             <Button 
               variant="secondary" 
               size="sm"
-              className="absolute bottom-3 left-3 px-2.5"
+              className="absolute bottom-3 left-3 px-2.5 gap-2"
               tabIndex={isCurrent ? 0 : -1}
+              onClick={handleGenerateScript}
+              disabled={scriptState !== 'idle'}
             >
-              Створити сценарій
+              {scriptState === 'loading' && (
+                <motion.div
+                  className="w-4 h-4 border-2 border-secondary-foreground/30 border-t-secondary-foreground rounded-full"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                />
+              )}
+              {scriptState === 'idle' && 'Створити сценарій'}
+              {scriptState === 'loading' && 'Пишу сценарій...'}
+              {(scriptState === 'transforming' || scriptState === 'done') && 'Сценарій готовий ✓'}
             </Button>
           </div>
 

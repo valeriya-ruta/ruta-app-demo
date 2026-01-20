@@ -16,63 +16,63 @@ const CARD_HEIGHT = 400;
 const ideas = [
   {
     id: "idea-1",
-    title: "One-minute growth story",
+    title: "POV: я думаю, що лінь заважає мені постити",
     description:
-      "Share a quick, honest moment from your creator journey. Focus on a single lesson you wish you knew earlier.",
+      "• Що я зазвичай звинувачую, коли не виходить регулярно?\n• Це справді лінь — чи перевантаження?\n• Коли контент починає відчуватись як ще одна задача?",
   },
   {
     id: "idea-2",
-    title: "Before vs after workflow",
+    title: "Чому дисципліна не працює для креативних людей",
     description:
-      "Show how your process changed over time. Highlight one tool or habit that made the biggest difference.",
+      "• Звідки в мене ідея, що дисципліна = регулярність?\n• Що ламається, коли я намагаюсь себе змусити?\n• Чи бувало, що жорсткий контроль реально допомагав?",
   },
   {
     id: "idea-3",
-    title: "Behind-the-scenes setup",
+    title: "Регулярність — це проблема енергії, а не часу",
     description:
-      "Give a calm walkthrough of your recording space or kit. Keep it practical, clean, and minimal.",
+      "• Чи справді мені бракує часу?\n• В яких станах я можу створювати контент легше?\n• Що забирає енергію перед зйомкою або письмом?",
   },
   {
     id: "idea-4",
-    title: "Answer a common question",
+    title: "Чому контент зривається через постійні переключення",
     description:
-      "Pick a FAQ and answer it in under 60 seconds. Start with the question and finish with a clear takeaway.",
+      "• Скільки разів на день я перемикаюсь між задачами?\n• Що відбувається з думкою після цих переключень?\n• Чи можу я повертатись у контент без втрати фокусу?",
   },
   {
     id: "idea-5",
-    title: "Creative constraint challenge",
+    title: "Для новачків: чому складно постити регулярно",
     description:
-      "Create a piece of content using a single constraint. Explain how the constraint improved focus and output.",
+      "• Чого я очікую від себе на старті?\n• Чи не намагаюсь я робити \"ідеально\" з першого разу?\n• Що було б, якби я спростила процес?",
   },
   {
     id: "idea-6",
-    title: "Mini trend breakdown",
+    title: "Для досвідчених: чому регулярність ламається з часом",
     description:
-      "Break down a trend in your niche. Mention why it works and when it might not be a good fit.",
+      "• Чому з досвідом стає не легше, а важче?\n• Що змінилось у моєму навантаженні?\n• Чи працює моя стара система досі?",
   },
   {
     id: "idea-7",
-    title: "Personal process check-in",
+    title: "Чому планери і Notion не вирішують проблему контенту",
     description:
-      "Share one thing you're improving this week. Keep it reflective and practical, not overly dramatic.",
+      "• Що саме я там організовую — і чи створюю контент?\n• Чи не стало планування заміною дії?\n• Коли я востаннє поверталась до старих ідей?",
   },
   {
     id: "idea-8",
-    title: "Five-second hook test",
+    title: "Креативність не працює по жорсткому плану",
     description:
-      "Record 2–3 opening lines for the same idea. Ask which hook feels most clear and compelling.",
+      "• Коли мені найпростіше придумувати ідеї?\n• Що відбувається, коли я заганяю себе в рамки?\n• Як виглядає мій креативний потік насправді?",
   },
   {
     id: "idea-9",
-    title: "Tool you can’t live without",
+    title: "Чому контент відчувається як тиск",
     description:
-      "Pick one app or device you use daily. Explain the specific problem it solves for you.",
+      "• В який момент з'являється напруга?\n• Що я очікую від кожного посту?\n• Чи дозволяю я собі думати, а не \"виробляти\"?",
   },
   {
     id: "idea-10",
-    title: "A calm call-to-action",
+    title: "Одна думка → тиждень контенту",
     description:
-      "Invite viewers to try a small action. Make it low-pressure and focused on progress over perfection.",
+      "• Яку одну ідею я давно ношу в голові?\n• Як я можу подивитись на неї з іншого боку?\n• Що з цього може стати окремим постом?",
   },
 ];
 
@@ -274,7 +274,7 @@ export default function ReusePage() {
                     </span>
                     <div className="flex-1">
                       <div className="font-medium">{idea.title}</div>
-                      <div className="text-sm text-muted-foreground mt-1">
+                      <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line">
                         {idea.description}
                       </div>
                     </div>
@@ -314,10 +314,10 @@ export default function ReusePage() {
                       transform: "translateY(12px) scale(0.988)",
                     }}
                   >
-                    <h2 className="text-2xl font-semibold text-foreground">
+                    <h2 className="text-2xl font-semibold text-foreground text-left w-full">
                       {nextIdea.title}
                     </h2>
-                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                    <p className="mt-4 text-sm leading-relaxed text-muted-foreground text-left whitespace-pre-line">
                       {nextIdea.description}
                     </p>
                   </div>
@@ -344,10 +344,10 @@ export default function ReusePage() {
                     touchAction: "pan-y",
                   }}
                 >
-                  <h2 className="text-2xl font-semibold text-foreground">
+                  <h2 className="text-2xl font-semibold text-foreground text-left w-full">
                     {currentIdea.title}
                   </h2>
-                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+                  <p className="mt-4 text-sm leading-relaxed text-muted-foreground text-left whitespace-pre-line">
                     {currentIdea.description}
                   </p>
                 </div>
