@@ -84,7 +84,6 @@ export default function ReusePage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [hasHapticFired, setHasHapticFired] = useState(false);
-  const [isConfirmed, setIsConfirmed] = useState(false);
   const [skipTransition, setSkipTransition] = useState(false);
   const [flyAwayX, setFlyAwayX] = useState<number | null>(null);
   const [hasJustAdvanced, setHasJustAdvanced] = useState(false);
@@ -238,9 +237,9 @@ export default function ReusePage() {
         {currentIndex >= ideas.length ? (
           <div className="flex flex-col flex-1 px-5 pb-8">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-semibold">Review your ideas</h1>
+              <h1 className="text-2xl font-semibold">Перевір свій вибір</h1>
               <p className="text-sm text-muted-foreground mt-2">
-                Toggle any item before confirming.
+                Натисни на картку, щоб змінити свій вибір
               </p>
             </div>
 
@@ -287,17 +286,11 @@ export default function ReusePage() {
               <Button
                 className="w-full rounded-[999px]"
                 onClick={() => {
-                  setIsConfirmed(true);
                   router.push("/create?fromSwipe=true");
                 }}
               >
-                Continue
+                Зберегти
               </Button>
-              {isConfirmed && (
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Selection confirmed for demo. No data has been saved.
-                </p>
-              )}
             </div>
           </div>
         ) : (
@@ -356,13 +349,13 @@ export default function ReusePage() {
 
             <div className="px-6 pb-5 text-xs text-muted-foreground">
               <div className="flex items-center justify-between opacity-50">
-                <div className="flex items-center gap-2">
-                  <ThumbsDown className="h-3.5 w-3.5" />
-                  <span>Swipe left if you don’t like the idea</span>
+                <div className="flex items-center gap-1.5">
+                  <ThumbsDown className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>Вліво — ні</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span>Swipe right if you like the idea</span>
-                  <ThumbsUp className="h-3.5 w-3.5" />
+                <div className="flex items-center gap-1.5">
+                  <span>Вправо — так</span>
+                  <ThumbsUp className="h-3.5 w-3.5 flex-shrink-0" />
                 </div>
               </div>
             </div>
